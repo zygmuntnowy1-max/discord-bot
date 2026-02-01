@@ -9,15 +9,15 @@ const {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
-  InteractionType,
-  PermissionsBitField
+  InteractionType
 } = require("discord.js");
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers // 🔥 TO NAPRAWIA WELCOME
   ],
   partials: [Partials.Channel]
 });
@@ -28,6 +28,27 @@ client.lastPanel = null;
 
 client.once("ready", () => {
   console.log(`✅ Zalogowano jako ${client.user.tag}`);
+});
+
+/* ================= WELCOME ================= */
+
+client.on("guildMemberAdd", member => {
+  const channel = member.guild.channels.cache.find(
+    ch => ch.name === "🛬┇welcome"
+  );
+
+  if (!channel) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle("👋 Nowy użytkownik!")
+    .setDescription(
+      `Witamy ${member} na **VHS Community Reborn**!\nMiło, że do nas dołączyłeś 💙`
+    )
+    .setThumbnail(member.user.displayAvatarURL())
+    .setColor("#57f287")
+    .setTimestamp();
+
+  channel.send({ embeds: [embed] });
 });
 
 /* ================= CHANGELOG PANEL ================= */
@@ -77,21 +98,18 @@ client.on("interactionCreate", async interaction => {
         .setCustomId("add")
         .setLabel("Co DODANO? 🟢")
         .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
     ),
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("fix")
         .setLabel("Co NAPRAWIONO? 🟡")
         .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
     ),
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("remove")
         .setLabel("Co USUNIĘTO? 🔴")
         .setStyle(TextInputStyle.Paragraph)
-        .setRequired(false)
     )
   );
 
@@ -108,18 +126,9 @@ client.on("interactionCreate", async interaction => {
     .setTitle(`📢 ${interaction.fields.getTextInputValue("title")}`)
     .setColor("#5865f2")
     .addFields(
-      {
-        name: "🟢 Dodano",
-        value: interaction.fields.getTextInputValue("add") || "—"
-      },
-      {
-        name: "🟡 Naprawiono",
-        value: interaction.fields.getTextInputValue("fix") || "—"
-      },
-      {
-        name: "🔴 Usunięto",
-        value: interaction.fields.getTextInputValue("remove") || "—"
-      }
+      { name: "🟢 Dodano", value: interaction.fields.getTextInputValue("add") || "—" },
+      { name: "🟡 Naprawiono", value: interaction.fields.getTextInputValue("fix") || "—" },
+      { name: "🔴 Usunięto", value: interaction.fields.getTextInputValue("remove") || "—" }
     )
     .setTimestamp();
 
@@ -207,18 +216,18 @@ client.on("interactionCreate", async interaction => {
   const winnersCount = parseInt(interaction.fields.getTextInputValue("winners"));
   const timeRaw = interaction.fields.getTextInputValue("time");
 
-  let ms =
+  const ms =
     timeRaw.endsWith("d") ? parseInt(timeRaw) * 86400000 :
     timeRaw.endsWith("h") ? parseInt(timeRaw) * 3600000 :
     parseInt(timeRaw) * 60000;
 
-  const endTimestamp = Date.now() + ms;
+  const end = Math.floor((Date.now() + ms) / 1000);
   const participants = new Set();
 
   const embed = new EmbedBuilder()
     .setTitle("🎉 GIVEAWAY 🎉")
     .setDescription(
-      `🎁 **Nagroda:** ${prize}\n👥 **Wygrani:** ${winnersCount}\n⏳ **Koniec:** <t:${Math.floor(endTimestamp/1000)}:R>`
+      `🎁 **Nagroda:** ${prize}\n👥 **Wygrani:** ${winnersCount}\n⏳ **Koniec:** <t:${end}:R>`
     )
     .setColor("#f1c40f");
 
@@ -254,17 +263,15 @@ client.on("interactionCreate", async interaction => {
       .sort(() => 0.5 - Math.random())
       .slice(0, winnersCount);
 
-    const endedAgo = Math.floor(Date.now() / 1000);
-
     await msg.edit({
       embeds: [
         EmbedBuilder.from(embed)
-          .setFooter({ text: `⏱ Zakończono <t:${endedAgo}:R>` })
+          .setFooter({ text: `⏱ Zakończono <t:${Math.floor(Date.now()/1000)}:R>` })
       ],
       components: []
     });
 
-    interaction.channel.send(
+    msg.channel.send(
       winners.length
         ? `🎉 **Wygrani:** ${winners.map(id => `<@${id}>`).join(", ")}`
         : "❌ Brak uczestników."
@@ -273,5 +280,3 @@ client.on("interactionCreate", async interaction => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
-
-
