@@ -293,3 +293,6 @@ client.on("interactionCreate", async interaction => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+client.login(process.env.DISCORD_TOKEN);
+
